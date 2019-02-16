@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
-import android.os.Message
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
@@ -15,25 +14,26 @@ import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.devs.sketchimage.SketchImage
 import com.fxn.pix.Pix
 import com.fxn.utility.PermUtil
-import com.google.android.material.tabs.TabLayout
 import com.himanshurawat.imageworker.Extension
 import com.himanshurawat.imageworker.ImageWorker
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
+import kotlinx.android.synthetic.main.editor.*
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ThumbnailCallback {
 
-    private lateinit var bmOriginal: Bitmap
     private lateinit var sketchImage: SketchImage
     private val maxProgress = 100
-    private var effectType = SketchImage.ORIGINAL_TO_GRAY
+    private var effectType = SketchImage.ORIGINAL_TO_SKETCH
     private val requestCode = 400
     private lateinit var imageUri: Uri
-    private var newImageUrl: Uri? = null
+    private var savedImageUrl: Uri? = null
+    private lateinit var bmOriginal: Bitmap
 
     private enum class CONDITION {
         NOTHING,
@@ -51,13 +51,84 @@ class MainActivity : AppCompatActivity() {
         fabSave.setOnClickListener { saveImage() }
     }
 
+    private fun showImage() {
+        bmOriginal = BitmapFactory.decodeFile(imageUri.path)
+
+        targetImageView?.setImageBitmap(bmOriginal)
+
+        sketchImage = SketchImage.Builder(this@MainActivity, bmOriginal).build()
+
+        percentTextView.text = String.format("%d %%", getProgress(this@MainActivity, effectType))
+        seekBar.max = maxProgress
+        seekBar.progress = getProgress(this@MainActivity, effectType)
+        targetImageView?.setImageBitmap(
+            sketchImage.getImageAs(
+                effectType,
+                getProgress(this@MainActivity, effectType)
+            )
+        )
+        onSeekBarChange()
+        initThumbnailsList()
+    }
+
+    private fun initThumbnailsList() {
+        val layoutManager = LinearLayoutManager(this)
+        layoutManager.orientation = LinearLayoutManager.HORIZONTAL
+        layoutManager.scrollToPosition(0)
+
+        recyclerView.layoutManager = layoutManager
+        recyclerView.setHasFixedSize(true)
+
+        val adapter = ThumbnailAdapter(this, sketchImage, bmOriginal, Thumbnails().filters, this)
+        recyclerView.adapter = adapter
+    }
+
+    override fun onThumbnailClick(effect: Int) {
+        effectType = effect
+        percentTextView.text = String.format("%d %%", maxProgress)
+        seekBar.max = maxProgress
+        seekBar.progress = getProgress(this@MainActivity, effectType)
+        targetImageView?.setImageBitmap(
+            sketchImage.getImageAs(
+                effectType,
+                getProgress(this@MainActivity, effectType)
+            )
+        )
+    }
+
+    private fun onSeekBarChange() {
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, i: Int, b: Boolean) {
+                percentTextView.text = String.format("%d %%", seekBar.progress)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+                progressBar.visibility = View.VISIBLE
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                progressBar.visibility = View.INVISIBLE
+                targetImageView?.setImageBitmap(
+                    sketchImage.getImageAs(
+                        effectType,
+                        seekBar.progress
+                    )
+                )
+                //Saving current value.
+                saveProgress(this@MainActivity, effectType, seekBar.progress)
+            }
+        })
+    }
+
     private fun render(c: CONDITION) {
         when (c) {
             CONDITION.NOTHING -> {
-                container.visibility = View.INVISIBLE
+                placeholder.visibility = View.VISIBLE
+                container.visibility = View.GONE
                 fabAdd.visibility = View.VISIBLE
             }
             CONDITION.EDITING -> {
+                placeholder.visibility = View.GONE
                 container.visibility = View.VISIBLE
                 fabAdd.visibility = View.VISIBLE
                 fabSave.visibility = View.VISIBLE
@@ -94,80 +165,6 @@ class MainActivity : AppCompatActivity() {
         toast.show()
     }
 
-    private fun showImage() {
-        val bmOriginal = BitmapFactory.decodeFile(imageUri.path)
-
-        targetImageView?.setImageBitmap(bmOriginal)
-
-        sketchImage = SketchImage.Builder(this, bmOriginal).build()
-
-        percentTextView.text = String.format("%d %%", maxProgress)
-        seekBar.max = maxProgress
-        seekBar.progress = maxProgress
-        targetImageView?.setImageBitmap(
-            sketchImage.getImageAs(
-                effectType,
-                maxProgress
-            )
-        )
-
-        val tabLayout = findViewById<TabLayout>(R.id.tabLayout)
-        tabLayout.addTab(tabLayout.newTab().setText("Gray"))
-        tabLayout.addTab(tabLayout.newTab().setText("Sketch"))
-        tabLayout.addTab(tabLayout.newTab().setText("Colored Sketch"))
-        tabLayout.addTab(tabLayout.newTab().setText("Soft Sketch"))
-        tabLayout.addTab(tabLayout.newTab().setText("Soft Color Sketch"))
-        tabLayout.addTab(tabLayout.newTab().setText("Gray to Sketch"))
-        tabLayout.addTab(tabLayout.newTab().setText("Gray to Colored Sketch"))
-        tabLayout.addTab(tabLayout.newTab().setText("Gray to Soft Sketch"))
-        tabLayout.addTab(tabLayout.newTab().setText("Gray to Soft Color Sketch"))
-        tabLayout.addTab(tabLayout.newTab().setText("Sketch to Color Sketch"))
-
-        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                effectType = tabLayout.selectedTabPosition
-                percentTextView.text = String.format("%d %%", maxProgress)
-                seekBar.max = maxProgress
-                seekBar.progress = maxProgress
-                targetImageView?.setImageBitmap(
-                    sketchImage.getImageAs(
-                        effectType,
-                        maxProgress
-                    )
-                )
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) {
-
-            }
-
-            override fun onTabReselected(tab: TabLayout.Tab) {
-
-            }
-        })
-
-
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, i: Int, b: Boolean) {
-                percentTextView.text = String.format("%d %%", seekBar.progress)
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
-                progressBar.visibility = View.VISIBLE
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                progressBar.visibility = View.INVISIBLE
-                targetImageView?.setImageBitmap(
-                    sketchImage.getImageAs(
-                        effectType,
-                        seekBar.progress
-                    )
-                )
-            }
-        })
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK && requestCode == this.requestCode) {
@@ -176,6 +173,7 @@ class MainActivity : AppCompatActivity() {
             imageUri = Uri.parse(returnValue[0])
             render(CONDITION.EDITING)
             showImage()
+
         } else toast("No image added")
     }
 
@@ -193,7 +191,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.

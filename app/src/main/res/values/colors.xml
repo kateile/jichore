@@ -13,4 +13,7 @@
     <color name="fabSave">#03A9F4</color>
     <color name="fabShare">#FFC107</color>
 
+    <color name="black_overlay">#66000000</color>
+
+
 </resources>

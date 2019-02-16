@@ -33,6 +33,10 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.1.2-alpha01'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.2-alpha01'
 
+//    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.1'
+//    implementation "org.jetbrains.anko:anko:$anko_version"
+//    implementation "org.jetbrains.anko:anko-design:$anko_version"
+
     implementation 'com.github.devsideal:SketchImage:1.0.1'
     implementation 'com.fxn769:pix:1.2.5'
     implementation 'com.github.1AboveAll:ImageWorker:0.6'
