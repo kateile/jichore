@@ -3,4 +3,14 @@
     <color name="colorPrimary">#008577</color>
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
+
+    <!--Pix Colors-->
+    <color name="colorPrimaryPix">#075e54</color>
+    <color name="colorPrimaryLightPix">#80075e54</color>
+
+    <!--Fab colors-->
+    <color name="fabAdd">#F44336</color>
+    <color name="fabSave">#03A9F4</color>
+    <color name="fabShare">#FFC107</color>
+
 </resources>
