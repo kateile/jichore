@@ -39,7 +39,7 @@ class ThumbnailAdapter(
             imageView?.setImageBitmap(bmOriginal)
 
             imageView?.setImageBitmap(
-                sketchImage.getImageAs(effectType, 100)
+                sketchImage.getImageAs(effectType, 90)
             )
 
             imageView.setOnClickListener { thumbnailCallback.onThumbnailClick(effectType) }

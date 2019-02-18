@@ -17,6 +17,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devs.sketchimage.SketchImage
+import com.google.android.gms.ads.*
+import com.google.android.material.snackbar.Snackbar
 import com.himanshurawat.imageworker.Extension
 import com.himanshurawat.imageworker.ImageWorker
 import com.jichore.app.Consts.APP_FOLDER
@@ -26,10 +28,9 @@ import com.nguyenhoanglam.imagepicker.ui.imagepicker.ImagePicker
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 import kotlinx.android.synthetic.main.editor.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import kotlinx.android.synthetic.main.placeholder.*
+import kotlinx.coroutines.*
+import org.jetbrains.anko.design.longSnackbar
 import kotlin.coroutines.CoroutineContext
 
 
@@ -42,6 +43,8 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
     private var savedImageUrl: Uri? = null
     private lateinit var bmOriginal: Bitmap
     private var images = ArrayList<Image>()
+
+    private lateinit var interstitialAd: InterstitialAd
 
     private enum class CONDITION {
         NOTHING,
@@ -59,14 +62,27 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
 
         job = Job()
 
+        loadAds()
+
         render(CONDITION.NOTHING)
         fabAdd.setOnClickListener { openGallery() }
         fabSave.setOnClickListener { saveImage() }
         fabShare.setOnClickListener { onShare() }
     }
 
+    private fun loadAds() {
+        MobileAds.initialize(this, getString(R.string.admob_app_id))
+
+        adView.loadAd(AdRequest.Builder().build())
+        adViewBanner.loadAd(AdRequest.Builder().build())
+
+        interstitialAd = InterstitialAd(this)
+        interstitialAd.adUnitId = getString(R.string.interstitial_ad_unit)
+        interstitialAd.loadAd(AdRequest.Builder().build())
+    }
+
     private fun openGallery() {
-        ImagePicker.with(this)           //  Initialize ImagePicker with activity or fragment context
+        ImagePicker.with(this@MainActivity)           //  Initialize ImagePicker with activity or fragment context
             .setToolbarColor("#212121")         //  Toolbar color
             .setStatusBarColor("#000000")       //  StatusBar color (works with SDK >= 21  )
             .setToolbarTextColor("#FFFFFF")     //  Toolbar text color (Title and Done button)
@@ -79,10 +95,8 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
             .setShowCamera(true)                //  Show camera button
             .setFolderTitle("Albums")           //  Folder title (works with FolderMode = true)
             .setImageTitle("Galleries")         //  Image title (works with FolderMode = false)
-            .setDoneTitle("Done")               //  Done button title
             .setSavePath(Environment.DIRECTORY_PICTURES)         //  Image capture folder name
             .setSelectedImages(images)          //  Selected images
-            .setAlwaysShowDoneButton(true)      //  Set always show done button in multiple mode
             .setRequestCode(100)                //  Set request code, default Config.RC_PICK_IMAGES
             .setKeepScreenOn(true)              //  Keep screen on when selecting images
             .start()                          //  Start ImagePicker
@@ -116,7 +130,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         showProgress(false)
     }
 
-    private fun initThumbnailsList() = launch {
+    private fun initThumbnailsList() = launch(Dispatchers.IO) {
         val layoutManager = LinearLayoutManager(this@MainActivity)
         layoutManager.orientation = LinearLayoutManager.HORIZONTAL
         layoutManager.scrollToPosition(0)
@@ -200,7 +214,8 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
             maxProgress
         )
 
-        val name = imageUri.pathSegments.last()
+        val name = getRandomString(10)
+        val folder = Environment.getExternalStorageDirectory()
 
         ImageWorker
             .to(this@MainActivity)
@@ -211,12 +226,22 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
             .save(bitmap, 100)
 
         render(CONDITION.SAVED)
-        toast("Picture has been saved to Penseli folder.")
+        //Showing success message.
+        val snackBar =
+            coordinatorLayout.longSnackbar(getString(R.string.photo_saved), getString(R.string.share)) { onShare() }
+
+        snackBar.addCallback(object : Snackbar.Callback() {
+            override fun onShown(sb: Snackbar?) {
+                showProgress(false)
+            }
+
+            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                //if (interstitialAd.isLoaded) interstitialAd.show()
+            }
+        })
 
         savedImageUrl = Uri.parse("${Environment.DIRECTORY_PICTURES}/$APP_FOLDER/$name.png")
         Log.d("image", savedImageUrl.toString())
-
-        showProgress(false)
     }
 
     private fun onShare() {
@@ -265,5 +290,10 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
             R.id.action_settings -> true
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        if (interstitialAd.isLoaded) interstitialAd.show()
     }
 }

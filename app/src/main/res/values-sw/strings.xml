@@ -5,4 +5,7 @@
     <string name="image">Picha</string>
     <string name="share">Sambaza</string>
     <string name="select_image">Hakuna picha iliyochaguliwa</string>
+    <string name="share_app">Jumuisha marafiki</string>
+    <string name="rate_app">Pongeza programu</string>
+    <string name="photo_saved">Picha imehifadhiwa</string>
 </resources>
