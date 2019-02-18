@@ -4,4 +4,6 @@
     <string name="image">Image</string>
     <string name="share">Share</string>
     <string name="select_image">No image selected</string>
+    <string name="share_app">Invite friends</string>
+    <string name="rate_app">Rate App</string>
 </resources>

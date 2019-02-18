@@ -3,7 +3,6 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
         android:orientation="vertical"
         android:gravity="center"
         android:layout_marginBottom="96dp"
@@ -25,16 +24,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/image"/>
-
-        <ProgressBar
-                app:layout_constraintTop_toTopOf="@id/targetImageView"
-                app:layout_constraintLeft_toLeftOf="@id/targetImageView"
-                app:layout_constraintRight_toRightOf="@id/targetImageView"
-                app:layout_constraintBottom_toBottomOf="@id/targetImageView"
-                android:id="@+id/progressBar"
-                android:visibility="invisible"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
 
         <androidx.recyclerview.widget.RecyclerView
                 android:background="@color/black_overlay"
@@ -64,6 +53,7 @@
                 app:layout_constraintEnd_toStartOf="@+id/percentTextView"
                 android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"/>
+
         <TextView
                 android:id="@+id/percentTextView"
                 android:layout_gravity="center"

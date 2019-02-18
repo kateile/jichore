@@ -1,7 +1,7 @@
-package com.jichorekwapenseli.app
+package com.jichore.app
 
 import android.content.Context
-import com.jichorekwapenseli.app.Consts.APP_PREFERENCE
+import com.jichore.app.Consts.APP_PREFERENCE
 
 
 fun getProgress(context: Context, key: Int): Int {

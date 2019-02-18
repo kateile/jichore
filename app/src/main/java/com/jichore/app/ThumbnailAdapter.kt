@@ -1,4 +1,4 @@
-package com.jichorekwapenseli.app
+package com.jichore.app
 
 import android.content.Context
 import android.graphics.Bitmap

@@ -9,8 +9,7 @@
     <color name="colorPrimaryLightPix">#80075e54</color>
 
     <!--Fab colors-->
-    <color name="fabAdd">#F44336</color>
-    <color name="fabSave">#03A9F4</color>
+    <color name="fabSave">#F44336</color>
     <color name="fabShare">#FFC107</color>
 
     <color name="black_overlay">#66000000</color>

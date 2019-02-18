@@ -1,12 +1,13 @@
-package com.jichorekwapenseli.app
+package com.jichore.app
 
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.util.Log
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
@@ -16,24 +17,31 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devs.sketchimage.SketchImage
-import com.fxn.pix.Pix
-import com.fxn.utility.PermUtil
 import com.himanshurawat.imageworker.Extension
 import com.himanshurawat.imageworker.ImageWorker
+import com.jichore.app.Consts.APP_FOLDER
+import com.nguyenhoanglam.imagepicker.model.Config
+import com.nguyenhoanglam.imagepicker.model.Image
+import com.nguyenhoanglam.imagepicker.ui.imagepicker.ImagePicker
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 import kotlinx.android.synthetic.main.editor.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
 
-class MainActivity : AppCompatActivity(), ThumbnailCallback {
+class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
 
     private lateinit var sketchImage: SketchImage
     private val maxProgress = 100
     private var effectType = SketchImage.ORIGINAL_TO_SKETCH
-    private val requestCode = 400
     private lateinit var imageUri: Uri
     private var savedImageUrl: Uri? = null
     private lateinit var bmOriginal: Bitmap
+    private var images = ArrayList<Image>()
 
     private enum class CONDITION {
         NOTHING,
@@ -41,17 +49,52 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback {
         SAVED,
     }
 
+    lateinit var job: Job
+    override val coroutineContext: CoroutineContext get() = Dispatchers.Main + job
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
+        job = Job()
+
         render(CONDITION.NOTHING)
-        fabAdd.setOnClickListener { Pix.start(this, requestCode) }
+        fabAdd.setOnClickListener { openGallery() }
         fabSave.setOnClickListener { saveImage() }
+        fabShare.setOnClickListener { onShare() }
     }
 
-    private fun showImage() {
+    private fun openGallery() {
+        ImagePicker.with(this)           //  Initialize ImagePicker with activity or fragment context
+            .setToolbarColor("#212121")         //  Toolbar color
+            .setStatusBarColor("#000000")       //  StatusBar color (works with SDK >= 21  )
+            .setToolbarTextColor("#FFFFFF")     //  Toolbar text color (Title and Done button)
+            .setToolbarIconColor("#FFFFFF")     //  Toolbar icon color (Back and Camera button)
+            .setProgressBarColor("#4CAF50")     //  ProgressBar color
+            .setBackgroundColor("#212121")      //  Background color
+            .setCameraOnly(false)               //  Camera mode
+            .setMultipleMode(false)              //  Select multiple images or single image
+            .setFolderMode(true)                //  Folder mode
+            .setShowCamera(true)                //  Show camera button
+            .setFolderTitle("Albums")           //  Folder title (works with FolderMode = true)
+            .setImageTitle("Galleries")         //  Image title (works with FolderMode = false)
+            .setDoneTitle("Done")               //  Done button title
+            .setSavePath(Environment.DIRECTORY_PICTURES)         //  Image capture folder name
+            .setSelectedImages(images)          //  Selected images
+            .setAlwaysShowDoneButton(true)      //  Set always show done button in multiple mode
+            .setRequestCode(100)                //  Set request code, default Config.RC_PICK_IMAGES
+            .setKeepScreenOn(true)              //  Keep screen on when selecting images
+            .start()                          //  Start ImagePicker
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel() // Cancel job on activity destroy. After destroy all children jobs will be cancelled automatically
+    }
+
+    private fun showImage() = launch {
+        showProgress(true)
         bmOriginal = BitmapFactory.decodeFile(imageUri.path)
 
         targetImageView?.setImageBitmap(bmOriginal)
@@ -69,21 +112,27 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback {
         )
         onSeekBarChange()
         initThumbnailsList()
+
+        showProgress(false)
     }
 
-    private fun initThumbnailsList() {
-        val layoutManager = LinearLayoutManager(this)
+    private fun initThumbnailsList() = launch {
+        val layoutManager = LinearLayoutManager(this@MainActivity)
         layoutManager.orientation = LinearLayoutManager.HORIZONTAL
         layoutManager.scrollToPosition(0)
 
         recyclerView.layoutManager = layoutManager
         recyclerView.setHasFixedSize(true)
 
-        val adapter = ThumbnailAdapter(this, sketchImage, bmOriginal, Thumbnails().filters, this)
+        val adapter = ThumbnailAdapter(
+            this@MainActivity, sketchImage, bmOriginal, Thumbnails().filters, this@MainActivity
+        )
         recyclerView.adapter = adapter
     }
 
-    override fun onThumbnailClick(effect: Int) {
+    override fun onThumbnailClick(effect: Int) = launch {
+        showProgress(true)
+
         effectType = effect
         percentTextView.text = String.format("%d %%", maxProgress)
         seekBar.max = maxProgress
@@ -94,20 +143,21 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback {
                 getProgress(this@MainActivity, effectType)
             )
         )
+        showProgress(false)
     }
 
-    private fun onSeekBarChange() {
+    private fun onSeekBarChange() = launch {
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, i: Int, b: Boolean) {
                 percentTextView.text = String.format("%d %%", seekBar.progress)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {
-                progressBar.visibility = View.VISIBLE
+                showProgress(true)
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar) {
-                progressBar.visibility = View.INVISIBLE
+                showProgress(false)
                 targetImageView?.setImageBitmap(
                     sketchImage.getImageAs(
                         effectType,
@@ -136,27 +186,45 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback {
             }
             CONDITION.SAVED -> {
                 fabAdd.visibility = View.VISIBLE
-                fabSave.visibility = View.GONE
+                fabSave.visibility = View.VISIBLE
                 fabShare.visibility = View.VISIBLE
             }
         }
     }
 
-    private fun saveImage() {
+    private fun saveImage() = launch {
+        showProgress(true)
+
         val bitmap = sketchImage.getImageAs(
             effectType,
             maxProgress
         )
 
+        val name = imageUri.pathSegments.last()
+
         ImageWorker
-            .to(this)
-            .directory("Penseli")
-            .setFileName(imageUri.pathSegments.last())
+            .to(this@MainActivity)
+            .directory(Environment.DIRECTORY_PICTURES)
+            .subDirectory(APP_FOLDER)
+            .setFileName(name)
             .withExtension(Extension.PNG)
             .save(bitmap, 100)
 
         render(CONDITION.SAVED)
         toast("Picture has been saved to Penseli folder.")
+
+        savedImageUrl = Uri.parse("${Environment.DIRECTORY_PICTURES}/$APP_FOLDER/$name.png")
+        Log.d("image", savedImageUrl.toString())
+
+        showProgress(false)
+    }
+
+    private fun onShare() {
+        val intent = Intent(Intent.ACTION_SEND)
+        intent.type = "image/png"
+
+        intent.putExtra(Intent.EXTRA_STREAM, savedImageUrl)
+        startActivity(Intent.createChooser(intent, "Share"))
     }
 
     private fun toast(message: String) {
@@ -166,29 +234,20 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK && requestCode == this.requestCode) {
-            val returnValue = data!!.getStringArrayListExtra(Pix.IMAGE_RESULTS)
-
-            imageUri = Uri.parse(returnValue[0])
+        if (requestCode == Config.RC_PICK_IMAGES && resultCode == Activity.RESULT_OK && data != null) {
+            val images = data.getParcelableArrayListExtra<Image>(Config.EXTRA_IMAGES)
+            imageUri = Uri.parse(images[0].path)
             render(CONDITION.EDITING)
             showImage()
-
         } else toast("No image added")
+        // You MUST have this line to be here // so ImagePicker can work with fragment mode
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        when (requestCode) {
-            PermUtil.REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS -> {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Pix.start(this, requestCode)
-                } else {
-                    Toast.makeText(this@MainActivity, "Approve permissions to open image picker", Toast.LENGTH_LONG)
-                        .show()
-                }
-                return
-            }
+    private fun showProgress(boolean: Boolean) {
+        when (boolean) {
+            true -> progressBar.visibility = View.VISIBLE
+            false -> progressBar.visibility = View.INVISIBLE
         }
     }
 

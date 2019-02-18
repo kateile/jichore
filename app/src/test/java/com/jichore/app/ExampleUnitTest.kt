@@ -1,4 +1,4 @@
-package com.jichorekwapenseli.app
+package com.jichore.app
 
 import org.junit.Test
 
