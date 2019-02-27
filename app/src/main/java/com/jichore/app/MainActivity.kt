@@ -31,6 +31,7 @@ import kotlinx.android.synthetic.main.editor.*
 import kotlinx.android.synthetic.main.placeholder.*
 import kotlinx.coroutines.*
 import org.jetbrains.anko.design.longSnackbar
+import org.jetbrains.anko.doAsync
 import kotlin.coroutines.CoroutineContext
 
 
@@ -52,7 +53,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         SAVED,
     }
 
-    lateinit var job: Job
+    private lateinit var job: Job
     override val coroutineContext: CoroutineContext get() = Dispatchers.Main + job
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,50 +114,56 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
 
         targetImageView?.setImageBitmap(bmOriginal)
 
-        sketchImage = SketchImage.Builder(this@MainActivity, bmOriginal).build()
-
         percentTextView.text = String.format("%d %%", getProgress(this@MainActivity, effectType))
         seekBar.max = maxProgress
         seekBar.progress = getProgress(this@MainActivity, effectType)
-        targetImageView?.setImageBitmap(
-            sketchImage.getImageAs(
-                effectType,
-                getProgress(this@MainActivity, effectType)
-            )
-        )
-        onSeekBarChange()
-        initThumbnailsList()
 
-        showProgress(false)
+        withContext(Dispatchers.Default) {
+            sketchImage = SketchImage.Builder(this@MainActivity, bmOriginal).build()
+            targetImageView?.setImageBitmap(
+                sketchImage.getImageAs(
+                    effectType,
+                    getProgress(this@MainActivity, effectType)
+                )
+            )
+        }
+
+        initThumbnailsList()
+        onSeekBarChange()
     }
 
-    private fun initThumbnailsList() = launch(Dispatchers.IO) {
+    private fun initThumbnailsList() = launch {
         val layoutManager = LinearLayoutManager(this@MainActivity)
         layoutManager.orientation = LinearLayoutManager.HORIZONTAL
         layoutManager.scrollToPosition(0)
-
         recyclerView.layoutManager = layoutManager
         recyclerView.setHasFixedSize(true)
 
-        val adapter = ThumbnailAdapter(
-            this@MainActivity, sketchImage, bmOriginal, Thumbnails().filters, this@MainActivity
-        )
-        recyclerView.adapter = adapter
+        withContext(Dispatchers.Default) {
+            val adapter = ThumbnailAdapter(
+                this@MainActivity, sketchImage, bmOriginal, Thumbnails().filters, this@MainActivity
+            )
+            recyclerView.adapter = adapter
+        }
+        showProgress(false)
     }
 
     override fun onThumbnailClick(effect: Int) = launch {
         showProgress(true)
 
         effectType = effect
-        percentTextView.text = String.format("%d %%", maxProgress)
+        percentTextView.text = String.format("%d %%", getProgress(this@MainActivity, effectType))
         seekBar.max = maxProgress
         seekBar.progress = getProgress(this@MainActivity, effectType)
-        targetImageView?.setImageBitmap(
-            sketchImage.getImageAs(
-                effectType,
-                getProgress(this@MainActivity, effectType)
+
+        withContext(Dispatchers.Default) {
+            targetImageView?.setImageBitmap(
+                sketchImage.getImageAs(
+                    effectType,
+                    getProgress(this@MainActivity, effectType)
+                )
             )
-        )
+        }
         showProgress(false)
     }
 
@@ -215,7 +222,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         )
 
         val name = getRandomString(10)
-        val folder = Environment.getExternalStorageDirectory()
+        //val folder = Environment.getExternalStorageDirectory()
 
         ImageWorker
             .to(this@MainActivity)
