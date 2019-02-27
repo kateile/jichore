@@ -54,6 +54,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
     }
 
     private lateinit var job: Job
+
     override val coroutineContext: CoroutineContext get() = Dispatchers.Main + job
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,17 +70,6 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         fabAdd.setOnClickListener { openGallery() }
         fabSave.setOnClickListener { saveImage() }
         fabShare.setOnClickListener { onShare() }
-    }
-
-    private fun loadAds() {
-        MobileAds.initialize(this, getString(R.string.admob_app_id))
-
-        adView.loadAd(AdRequest.Builder().build())
-        adViewBanner.loadAd(AdRequest.Builder().build())
-
-        interstitialAd = InterstitialAd(this)
-        interstitialAd.adUnitId = getString(R.string.interstitial_ad_unit)
-        interstitialAd.loadAd(AdRequest.Builder().build())
     }
 
     private fun openGallery() {
@@ -103,13 +93,15 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
             .start()                          //  Start ImagePicker
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        job.cancel() // Cancel job on activity destroy. After destroy all children jobs will be cancelled automatically
+    private fun processImage() = launch {
+        showProgress(true)
+
+        showImage()
+        initThumbnailsList()
+        onSeekBarChange()
     }
 
-    private fun showImage() = launch {
-        showProgress(true)
+    private suspend fun showImage() {
         bmOriginal = BitmapFactory.decodeFile(imageUri.path)
 
         targetImageView?.setImageBitmap(bmOriginal)
@@ -118,7 +110,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         seekBar.max = maxProgress
         seekBar.progress = getProgress(this@MainActivity, effectType)
 
-        withContext(Dispatchers.Default) {
+        withContext(Dispatchers.Main) {
             sketchImage = SketchImage.Builder(this@MainActivity, bmOriginal).build()
             targetImageView?.setImageBitmap(
                 sketchImage.getImageAs(
@@ -127,9 +119,6 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
                 )
             )
         }
-
-        initThumbnailsList()
-        onSeekBarChange()
     }
 
     private fun initThumbnailsList() = launch {
@@ -139,7 +128,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         recyclerView.layoutManager = layoutManager
         recyclerView.setHasFixedSize(true)
 
-        withContext(Dispatchers.Default) {
+        withContext(Dispatchers.Main) {
             val adapter = ThumbnailAdapter(
                 this@MainActivity, sketchImage, bmOriginal, Thumbnails().filters, this@MainActivity
             )
@@ -156,7 +145,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         seekBar.max = maxProgress
         seekBar.progress = getProgress(this@MainActivity, effectType)
 
-        withContext(Dispatchers.Default) {
+        withContext(Dispatchers.Main) {
             targetImageView?.setImageBitmap(
                 sketchImage.getImageAs(
                     effectType,
@@ -270,7 +259,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
             val images = data.getParcelableArrayListExtra<Image>(Config.EXTRA_IMAGES)
             imageUri = Uri.parse(images[0].path)
             render(CONDITION.EDITING)
-            showImage()
+            processImage()
         } else toast("No image added")
         // You MUST have this line to be here // so ImagePicker can work with fragment mode
         super.onActivityResult(requestCode, resultCode, data)
@@ -299,8 +288,25 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         }
     }
 
+    private fun loadAds() {
+        MobileAds.initialize(this, getString(R.string.admob_app_id))
+
+        adView.loadAd(AdRequest.Builder().build())
+        adViewBanner.loadAd(AdRequest.Builder().build())
+
+        interstitialAd = InterstitialAd(this)
+        interstitialAd.adUnitId = getString(R.string.interstitial_ad_unit)
+        interstitialAd.loadAd(AdRequest.Builder().build())
+    }
+
     override fun onBackPressed() {
         super.onBackPressed()
         if (interstitialAd.isLoaded) interstitialAd.show()
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel() // Cancel job on activity destroy. After destroy all children jobs will be cancelled automatically
+    }
+
 }
