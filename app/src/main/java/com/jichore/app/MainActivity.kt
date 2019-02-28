@@ -31,7 +31,6 @@ import kotlinx.android.synthetic.main.editor.*
 import kotlinx.android.synthetic.main.placeholder.*
 import kotlinx.coroutines.*
 import org.jetbrains.anko.design.longSnackbar
-import org.jetbrains.anko.doAsync
 import kotlin.coroutines.CoroutineContext
 
 
@@ -101,7 +100,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         onSeekBarChange()
     }
 
-    private suspend fun showImage() {
+    private fun showImage() = launch {
         bmOriginal = BitmapFactory.decodeFile(imageUri.path)
 
         targetImageView?.setImageBitmap(bmOriginal)
@@ -110,53 +109,50 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         seekBar.max = maxProgress
         seekBar.progress = getProgress(this@MainActivity, effectType)
 
-        withContext(Dispatchers.Main) {
+        targetImageView?.setImageBitmap(doImage(effectType, getProgress(this@MainActivity, effectType)))
+    }
+
+    private suspend fun doImage(effectType: Int, percent: Int): Bitmap {
+        showProgress(true)
+
+        val newImage = withContext(Dispatchers.Default) {
             sketchImage = SketchImage.Builder(this@MainActivity, bmOriginal).build()
-            targetImageView?.setImageBitmap(
-                sketchImage.getImageAs(
-                    effectType,
-                    getProgress(this@MainActivity, effectType)
-                )
-            )
+
+            sketchImage.getImageAs(effectType, percent)
         }
+        showProgress(false)
+
+        return newImage
     }
 
     private fun initThumbnailsList() = launch {
+        showProgress(true)
+
         val layoutManager = LinearLayoutManager(this@MainActivity)
         layoutManager.orientation = LinearLayoutManager.HORIZONTAL
         layoutManager.scrollToPosition(0)
         recyclerView.layoutManager = layoutManager
         recyclerView.setHasFixedSize(true)
 
-        withContext(Dispatchers.Main) {
-            val adapter = ThumbnailAdapter(
+        val adapter = withContext(Dispatchers.Default) {
+            ThumbnailAdapter(
                 this@MainActivity, sketchImage, bmOriginal, Thumbnails().filters, this@MainActivity
             )
-            recyclerView.adapter = adapter
         }
+        recyclerView.adapter = adapter
         showProgress(false)
     }
 
     override fun onThumbnailClick(effect: Int) = launch {
-        showProgress(true)
-
         effectType = effect
         percentTextView.text = String.format("%d %%", getProgress(this@MainActivity, effectType))
         seekBar.max = maxProgress
         seekBar.progress = getProgress(this@MainActivity, effectType)
 
-        withContext(Dispatchers.Main) {
-            targetImageView?.setImageBitmap(
-                sketchImage.getImageAs(
-                    effectType,
-                    getProgress(this@MainActivity, effectType)
-                )
-            )
-        }
-        showProgress(false)
+        targetImageView?.setImageBitmap(doImage(effectType, getProgress(this@MainActivity, effectType)))
     }
 
-    private fun onSeekBarChange() = launch {
+    private fun onSeekBarChange() {
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, i: Int, b: Boolean) {
                 percentTextView.text = String.format("%d %%", seekBar.progress)
@@ -167,15 +163,12 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar) {
-                showProgress(false)
-                targetImageView?.setImageBitmap(
-                    sketchImage.getImageAs(
-                        effectType,
-                        seekBar.progress
-                    )
-                )
                 //Saving current value.
                 saveProgress(this@MainActivity, effectType, seekBar.progress)
+
+                launch {
+                    targetImageView?.setImageBitmap(doImage(effectType, seekBar.progress))
+                }
             }
         })
     }
