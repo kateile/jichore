@@ -16,6 +16,7 @@ import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import com.devs.sketchimage.SketchImage
 import com.google.android.gms.ads.*
 import com.google.android.material.snackbar.Snackbar
@@ -95,34 +96,33 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
     private fun processImage() = launch {
         showProgress(true)
 
+        bmOriginal = BitmapFactory.decodeFile(imageUri.path)
+        sketchImage = SketchImage.Builder(this@MainActivity, bmOriginal).build()
+
         showImage()
         initThumbnailsList()
         onSeekBarChange()
     }
 
     private fun showImage() = launch {
-        bmOriginal = BitmapFactory.decodeFile(imageUri.path)
-
-        targetImageView?.setImageBitmap(bmOriginal)
+        Glide.with(this@MainActivity).load(bmOriginal).into(targetImageView)
 
         percentTextView.text = String.format("%d %%", getProgress(this@MainActivity, effectType))
         seekBar.max = maxProgress
         seekBar.progress = getProgress(this@MainActivity, effectType)
 
-        targetImageView?.setImageBitmap(doImage(effectType, getProgress(this@MainActivity, effectType)))
+        doImage(effectType, getProgress(this@MainActivity, effectType))
     }
 
-    private suspend fun doImage(effectType: Int, percent: Int): Bitmap {
+    private suspend fun doImage(effectType: Int, percent: Int) {
         showProgress(true)
 
         val newImage = withContext(Dispatchers.Default) {
-            sketchImage = SketchImage.Builder(this@MainActivity, bmOriginal).build()
-
             sketchImage.getImageAs(effectType, percent)
         }
         showProgress(false)
 
-        return newImage
+        Glide.with(this@MainActivity).load(newImage).into(targetImageView)
     }
 
     private fun initThumbnailsList() = launch {
@@ -136,7 +136,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
 
         val adapter = withContext(Dispatchers.Default) {
             ThumbnailAdapter(
-                this@MainActivity, sketchImage, bmOriginal, Thumbnails().filters, this@MainActivity
+                this@MainActivity, sketchImage, Thumbnails().filters, this@MainActivity
             )
         }
         recyclerView.adapter = adapter
@@ -149,7 +149,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         seekBar.max = maxProgress
         seekBar.progress = getProgress(this@MainActivity, effectType)
 
-        targetImageView?.setImageBitmap(doImage(effectType, getProgress(this@MainActivity, effectType)))
+        doImage(effectType, getProgress(this@MainActivity, effectType))
     }
 
     private fun onSeekBarChange() {
@@ -167,7 +167,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
                 saveProgress(this@MainActivity, effectType, seekBar.progress)
 
                 launch {
-                    targetImageView?.setImageBitmap(doImage(effectType, seekBar.progress))
+                    doImage(effectType, seekBar.progress)
                 }
             }
         })
@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         })
 
         savedImageUrl = Uri.parse("${Environment.DIRECTORY_PICTURES}/$APP_FOLDER/$name.png")
-        Log.d("image", savedImageUrl.toString())
+        //Log.d("image", savedImageUrl.toString())
     }
 
     private fun onShare() {
