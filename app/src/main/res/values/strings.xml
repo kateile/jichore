@@ -9,15 +9,15 @@
     <string name="photo_saved">Picture has been saved.</string>
 
     <!--Real Ads-->
-    <string name="admob_app_id" translatable="false">ca-app-pub-3974315111917266~3110131269</string>
-    <string name="large_banner_ad_unit" translatable="false">ca-app-pub-3974315111917266/7444251655</string>
-    <string name="interstitial_ad_unit" translatable="false">ca-app-pub-3974315111917266/8689761001</string>
-    <string name="banner_ad_unit" translatable="false">ca-app-pub-3974315111917266/2388323958</string>
+    <!--<string name="admob_app_id" translatable="false">ca-app-pub-3974315111917266~3110131269</string>-->
+    <!--<string name="large_banner_ad_unit" translatable="false">ca-app-pub-3974315111917266/7444251655</string>-->
+    <!--<string name="interstitial_ad_unit" translatable="false">ca-app-pub-3974315111917266/8689761001</string>-->
+    <!--<string name="banner_ad_unit" translatable="false">ca-app-pub-3974315111917266/2388323958</string>-->
 
     <!--Test Ads-->
-    <!--<string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>-->
-    <!--<string name="large_banner_ad_unit" translatable="false">ca-app-pub-3940256099942544/6300978111</string>-->
-    <!--<string name="interstitial_ad_unit" translatable="false">ca-app-pub-3940256099942544/1033173712</string>-->
-    <!--<string name="banner_ad_unit" translatable="false">ca-app-pub-3940256099942544/6300978111</string>-->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="large_banner_ad_unit" translatable="false">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="interstitial_ad_unit" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="banner_ad_unit" translatable="false">ca-app-pub-3940256099942544/6300978111</string>
 
 </resources>
