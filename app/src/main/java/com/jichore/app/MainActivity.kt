@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.util.Log
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
@@ -18,7 +17,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.devs.sketchimage.SketchImage
-import com.google.android.gms.ads.*
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.InterstitialAd
+import com.google.android.gms.ads.MobileAds
 import com.google.android.material.snackbar.Snackbar
 import com.himanshurawat.imageworker.Extension
 import com.himanshurawat.imageworker.ImageWorker
@@ -104,14 +105,16 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
         onSeekBarChange()
     }
 
-    private fun showImage() = launch {
-        Glide.with(this@MainActivity).load(bmOriginal).into(targetImageView)
+    private suspend fun showImage() = coroutineScope {
+        launch {
+            Glide.with(this@MainActivity).load(bmOriginal).into(targetImageView)
 
-        percentTextView.text = String.format("%d %%", getProgress(this@MainActivity, effectType))
-        seekBar.max = maxProgress
-        seekBar.progress = getProgress(this@MainActivity, effectType)
+            percentTextView.text = String.format("%d %%", getProgress(this@MainActivity, effectType))
+            seekBar.max = maxProgress
+            seekBar.progress = getProgress(this@MainActivity, effectType)
 
-        doImage(effectType, getProgress(this@MainActivity, effectType))
+            doImage(effectType, getProgress(this@MainActivity, effectType))
+        }
     }
 
     private suspend fun doImage(effectType: Int, percent: Int) {
