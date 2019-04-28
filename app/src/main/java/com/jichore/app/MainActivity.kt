@@ -252,6 +252,7 @@ class MainActivity : AppCompatActivity(), ThumbnailCallback, CoroutineScope {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == Config.RC_PICK_IMAGES && resultCode == Activity.RESULT_OK && data != null) {
+            images.clear() //Removing previous images
             val images = data.getParcelableArrayListExtra<Image>(Config.EXTRA_IMAGES)
             imageUri = Uri.parse(images[0].path)
             render(CONDITION.EDITING)
