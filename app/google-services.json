@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "781051894801",
+    "firebase_url": "https://jichore-e030b.firebaseio.com",
+    "project_id": "jichore-e030b",
+    "storage_bucket": "jichore-e030b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781051894801:android:719508200aae8f2b",
+        "android_client_info": {
+          "package_name": "com.jichore"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "781051894801-kvlmhr9gtv8d4tmcs009k8o0jvn8hnkf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjJmG2Bo3A_qiAPxZhjOA_EIZqtJAU4JM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "781051894801-kvlmhr9gtv8d4tmcs009k8o0jvn8hnkf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
